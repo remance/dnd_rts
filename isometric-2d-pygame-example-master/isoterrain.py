@@ -18,13 +18,14 @@ screen_scale = (DEFAULT_WINDOW_WIDTH / WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT / WIN
 ZOOM_TILE_SIZE_SCALED = {index: (DEFAULT_TILE_SIZE * value * screen_scale[0], DEFAULT_TILE_SIZE * value * screen_scale[1]) for
                          index, value in enumerate(ZOOM_SCALE_VALUE)}
 DEFAULT_ZOOM_LEVEL = int(len(ZOOM_TILE_SIZE_SCALED) / 2)
-current_zoom_scale_value = ZOOM_SCALE_VALUE[DEFAULT_ZOOM_LEVEL]
-TILE_WIDTH = ZOOM_TILE_SIZE_SCALED[DEFAULT_ZOOM_LEVEL][0]
-TILE_HEIGHT = ZOOM_TILE_SIZE_SCALED[DEFAULT_ZOOM_LEVEL][1]
+current_zoom_level = DEFAULT_ZOOM_LEVEL
+current_zoom_scale = ZOOM_SCALE_VALUE[current_zoom_level]
+
+TILE_WIDTH = ZOOM_TILE_SIZE_SCALED[current_zoom_level][0]
+TILE_HEIGHT = ZOOM_TILE_SIZE_SCALED[current_zoom_level][1]
 MAX_TILE_HEIGHT_VISIBILITY = TILE_HEIGHT * 3
 GRID_SIZE = 18
 
-current_zoom = DEFAULT_ZOOM_LEVEL
 
 # Set up asset directories
 ASSET_DIR = 'images'
@@ -69,15 +70,15 @@ class Camera:
         self.base_x = half_camera_width
         self.base_y = half_camera_height
 
-        self.x = self.base_x * ZOOM_SCALE_VALUE[current_zoom]
-        self.y = self.base_y * ZOOM_SCALE_VALUE[current_zoom]
+        self.x = self.base_x * current_zoom_scale
+        self.y = self.base_y * current_zoom_scale
 
         self.topleft_x = self.x - self.camera_w_center
         self.topleft_y = self.y - self.camera_h_center
 
     def camera_update(self):
-        self.x = self.base_x * ZOOM_SCALE_VALUE[current_zoom]
-        self.y = self.base_y * ZOOM_SCALE_VALUE[current_zoom]
+        self.x = self.base_x * current_zoom_scale
+        self.y = self.base_y * current_zoom_scale
 
         self.topleft_x = self.x - self.camera_w_center
         self.topleft_y = self.y - self.camera_h_center
@@ -118,7 +119,7 @@ for x in range(GRID_SIZE):
         terrain_grid[x][y] = {"terrain": choice(TERRAIN_TYPES), "height": int(random() * 2),
                               "topleft": pos_top_left, "center": pos}
 
-# asd
+
 # self.camera.update(self.shown_camera_pos, self.battle_camera,
 #                    out_surfaces=self.realtime_ui_updater)
 
@@ -149,7 +150,7 @@ def draw_grid():
     for grid_x in range(min_block_x, max_block_x):
         for grid_y in range(min_block_y, max_block_y):
             # Check if the current tile position is within the screen bounds before drawing
-            pos = terrain_grid[grid_x][grid_y]["topleft"][current_zoom]
+            pos = terrain_grid[grid_x][grid_y]["topleft"][current_zoom_level]
             pos = (pos[0] - camera.topleft_x, pos[1] - camera.topleft_y)
             # pos = (camera.x + pos[0], camera.y - pos[1])
 
@@ -157,7 +158,7 @@ def draw_grid():
             # if mouse_x in range(x, x + int(TILE_SIZE * 0.8)) and mouse_y in range(y, y + int(TILE_SIZE * 0.3)):
             #     hovered_block = block
             #     blit_y -= TILE_SIZE // 3
-            window.blit(images[current_zoom][terrain_grid[grid_x][grid_y]["terrain"]], pos)
+            window.blit(images[current_zoom_level][terrain_grid[grid_x][grid_y]["terrain"]], pos)
 
     # Display camera position
     camera_text = font.render(f"Camera: ({camera.x}, {camera.y})", True, (255, 255, 255))
@@ -189,16 +190,16 @@ while running:
                 pygame.quit()
                 sys.exit()
             elif event.key == K_MINUS:
-                current_zoom += 1
-                if current_zoom > len(ZOOM_SCALE_VALUE) - 1:
-                    current_zoom = len(ZOOM_SCALE_VALUE) - 1
-                current_zoom_scale_value = ZOOM_SCALE_VALUE[current_zoom]
+                current_zoom_level += 1
+                if current_zoom_level > len(ZOOM_SCALE_VALUE) - 1:
+                    current_zoom_level = len(ZOOM_SCALE_VALUE) - 1
+                current_zoom_scale = ZOOM_SCALE_VALUE[current_zoom_level]
                 camera.camera_update()
             elif event.key == K_EQUALS:
-                current_zoom -= 1
-                if current_zoom < 0:
-                    current_zoom = 0
-                current_zoom_scale_value = ZOOM_SCALE_VALUE[current_zoom]
+                current_zoom_level -= 1
+                if current_zoom_level < 0:
+                    current_zoom_level = 0
+                current_zoom_scale = ZOOM_SCALE_VALUE[current_zoom_level]
                 camera.camera_update()
             elif event.key in [K_UP, K_w]:
                 camera.base_y -= 20
