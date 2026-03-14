@@ -10,3 +10,5 @@ class Character():
         self.intelligence = character_stat["intelligence"]
         self.wisdom = character_stat["wisdom"]
         self.charisma = character_stat["charisma"]
+        self.equipments = {}
+        self.inventory = {}

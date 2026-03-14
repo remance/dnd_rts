@@ -1,6 +1,6 @@
 class Monster():
     monster_list: dict = None
-    challenge_to_exp_table
+    # challenge_to_exp_table
 
     def __init__(self, monster_id):
         monster_stat = self.monster_list[monster_id]
