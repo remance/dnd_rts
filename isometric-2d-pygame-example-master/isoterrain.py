@@ -26,12 +26,15 @@ DEFAULT_ZOOM_LEVEL = int(len(ZOOM_TILE_SIZE_SCALED) / 2)
 current_zoom_level = DEFAULT_ZOOM_LEVEL
 current_zoom_scale = ZOOM_SCALE_VALUE[current_zoom_level]
 
-MAX_TILE_HEIGHT_VISIBILITY = {True: ZOOM_TILE_SIZE_SCALED[current_zoom_level][1] * 2,
-                              False: ZOOM_TILE_SIZE_SCALED[current_zoom_level][1] * 3}
-GRID_SIZE = 4
-max_map_width_scaled = [WINDOW_WIDTH / (value[0] * GRID_SIZE) for value in ZOOM_TILE_SIZE_SCALED]
-max_map_height_scaled = [WINDOW_HEIGHT / (value[1] * GRID_SIZE) for value in ZOOM_TILE_SIZE_SCALED]
+GRID_SIZE = 2
+max_map_width_scaled = [value[0] * GRID_SIZE for value in ZOOM_TILE_SIZE_SCALED]
+max_map_height_scaled = [value[1] * GRID_SIZE for value in ZOOM_TILE_SIZE_SCALED]
 
+max_show_cell_width_scaled = [ceil(WINDOW_WIDTH / item[0]) for item in ZOOM_TILE_SIZE_SCALED]
+max_show_cell_height_scaled = {True: [ceil(WINDOW_HEIGHT / (item[1] / 4)) + 3 for item in ZOOM_TILE_SIZE_SCALED],
+                               False: [ceil(WINDOW_HEIGHT / (item[1] / 4)) + 5 for item in ZOOM_TILE_SIZE_SCALED]}
+print(ZOOM_TILE_SIZE_SCALED)
+print(max_show_cell_width_scaled, max_show_cell_height_scaled)
 # Set up asset directories
 ASSET_DIR = 'images'
 FONT_PATH = 'tahoma.ttf'
@@ -71,6 +74,7 @@ half_camera_height = DEFAULT_WINDOW_HEIGHT / 2
 mini_height_mode = False
 show_highlight = True
 current_camera_rotate = 0
+selected_tiles = []
 
 
 # Camera Class
@@ -123,12 +127,12 @@ def create_grid():
                 half_tile_height = ZOOM_TILE_SIZE_SCALED[zoom_level][1] / 2
                 a_fourth_tile_height = ZOOM_TILE_SIZE_SCALED[zoom_level][1] / 4
                 start_x = (half_camera_width * screen_scale_width * ZOOM_SCALE_VALUE[zoom_level]) - half_tile_width
-                start_y = (half_camera_height * screen_scale_height * ZOOM_SCALE_VALUE[zoom_level]) - (
-                        max_map_height_scaled[zoom_level] / 4)
+                start_y = (half_camera_height * screen_scale_height * ZOOM_SCALE_VALUE[zoom_level]) - (max_map_height_scaled[zoom_level] / 4)
 
                 pos[zoom_level] = Vector2(start_x + ((x - y) * half_tile_width),
                                           start_y + ((x + y) * a_fourth_tile_height))
-                pos_center_top[zoom_level] = Vector2(pos[zoom_level][0] + half_tile_width, pos[zoom_level][1] + half_tile_height)
+                pos_center_top[zoom_level] = Vector2(pos[zoom_level][0] + half_tile_width,
+                                                     pos[zoom_level][1] + half_tile_height)
 
             terrain_grid[x][y] = {"terrain": choice(TERRAIN_TYPES), "height": int(random() * 4) + 1,
                                   "topleft": pos, "center": pos_center_top}
@@ -146,9 +150,9 @@ def create_grid():
                     half_tile_width = ZOOM_TILE_SIZE_SCALED[zoom_level][0] / 2
                     half_tile_height = ZOOM_TILE_SIZE_SCALED[zoom_level][1] / 2
                     a_fourth_tile_height = ZOOM_TILE_SIZE_SCALED[zoom_level][1] / 4
+                    # blit using topleft, so minus by half width to offset to center.
                     start_x = (half_camera_width * screen_scale_width * ZOOM_SCALE_VALUE[zoom_level]) - half_tile_width
-                    start_y = (half_camera_height * screen_scale_height * ZOOM_SCALE_VALUE[zoom_level]) - (
-                            max_map_height_scaled[zoom_level] / 4)
+                    start_y = (half_camera_height * screen_scale_height * ZOOM_SCALE_VALUE[zoom_level]) - (max_map_height_scaled[zoom_level] / 4)
 
                     pos[zoom_level] = Vector2(start_x + ((x - y) * half_tile_width),
                                               start_y + ((x + y) * a_fourth_tile_height))
@@ -181,7 +185,14 @@ def draw_grid():
     # pos = (start_x + ((x - y) * half_tile_size) - half_tile_size,
     #        start_y + ((x + y) * a_fourth_tile_size))
     half_map_width = max_map_width_scaled[current_zoom_level] / 2
-    min_block_y = floor((camera.topleft_x + half_map_width) / ZOOM_TILE_SIZE_SCALED[current_zoom_level][0])
+    half_map_height = max_map_height_scaled[current_zoom_level] / 2
+
+    half_tile_width = ZOOM_TILE_SIZE_SCALED[current_zoom_level][0] / 2
+    start_x = (half_camera_width * screen_scale_width * ZOOM_SCALE_VALUE[current_zoom_level]) - half_tile_width
+    start_y = (half_camera_height * screen_scale_height * ZOOM_SCALE_VALUE[current_zoom_level]) - (
+                max_map_height_scaled[current_zoom_level] / 4)
+
+    min_block_y = floor((camera.topleft_x - start_x + half_map_width) / ZOOM_TILE_SIZE_SCALED[current_zoom_level][0])
     # print(min_block_y)
     # if min_block_y < 0:
     min_block_y = 0
@@ -193,19 +204,17 @@ def draw_grid():
     max_block_y = floor((camera.topleft_x + half_map_width) / ZOOM_TILE_SIZE_SCALED[current_zoom_level][0])
     # if max_block_y > GRID_SIZE:
     max_block_y = 0
-    max_block_x = ceil((camera.topleft_y - max_map_height_scaled[current_zoom_level] / 2) / MAX_TILE_HEIGHT_VISIBILITY[mini_height_mode])
+    # max_block_x = ceil((camera.topleft_y - max_map_height_scaled[current_zoom_level] / 2) / MAX_TILE_HEIGHT_VISIBILITY[mini_height_mode])
     # if max_block_x > GRID_SIZE:
     max_block_x = GRID_SIZE
 
-    # print(camera.x, camera.y, min_block_x, min_block_y, max_block_x, max_block_y)
     min_to_check = range(min_block_y, min_block_x)
     max_to_check = range(max_block_y, max_block_x)
-    print(min_to_check, max_to_check)
+    # print(min_to_check, max_to_check)
 
     # use x,y coordinate of 45 degree grid cell system here
     for grid_y in max_to_check:
         for grid_x in min_to_check:
-            print(grid_y, grid_x)
             pos = terrain_arrays[current_camera_rotate][grid_x][grid_y]["topleft"][current_zoom_level]
             pos = Vector2(pos[0] - camera.topleft_x, pos[1] - camera.topleft_y)
 
@@ -215,13 +224,15 @@ def draw_grid():
                 # print(pos)
                 window.blit(images[current_zoom_level][terrain_arrays[current_camera_rotate][grid_x][grid_y]["terrain"]],
                             (pos[0], pos_y_with_height))
-
+            if (grid_x, grid_y) in selected_tiles and show_highlight:
+                window.blit(highlight_image[current_zoom_level], (pos[0], pos_y_with_height))
             # center_pos = terrain_arrays[current_camera_rotate][grid_x][grid_y]["center"][current_zoom_level]
             # center_pos = Vector2(center_pos[0] - camera.topleft_x, center_pos[1] - camera.topleft_y - ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[False][current_zoom_level] - (
             #         ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[mini_height_mode][current_zoom_level] * (terrain_arrays[current_camera_rotate][grid_x][grid_y]["height"] - 1)))
             # pygame.draw.circle(window, (220,220,220), center_pos, 10, 5)
             # pygame.draw.circle(window, (220,50,50), pos, 10, 5)
 
+    found_hover = False
     for grid_y in reversed(max_to_check):
         for grid_x in reversed(min_to_check):
             # Check if the mouse is hovering over block
@@ -243,17 +254,15 @@ def draw_grid():
                     if terrain_height:
                         pos_y_with_height -= (ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[mini_height_mode][current_zoom_level] *
                                               (terrain_height - 1))
-                    if show_highlight:
-                        window.blit(highlight_image[current_zoom_level], (pos[0], pos_y_with_height))
+                    found_hover = True
                     break
 
                 elif mouse_pos[1] > center_pos[1]:
                     # cursor within body of high height tile, very likely blocked cursor view from above but lower tile
                     # break the loop since cursor should not consider hidden tile
-                    hovered_block = (grid_x, grid_y)
-                    # print(hovered_block, mouse_pos[1], center_pos[1])
+                    found_hover = True
                     break
-        if hovered_block:
+        if found_hover:
             break
 
 
@@ -266,13 +275,15 @@ def draw_grid():
         text_surface = font.render(f"Block: ({hovered_block[0]}, {hovered_block[1]})", True, (255, 255, 255))
         window.blit(text_surface, (WINDOW_WIDTH - text_surface.get_width(), 0))
 
+    return hovered_block
+
 
 # Main loop
 running = True
 while running:
     # print(int(clock.get_fps()))
     clock.tick()
-    draw_grid()
+    hovered_block = draw_grid()
     pygame.display.flip()
 
     for event in pygame.event.get():
@@ -331,4 +342,13 @@ while running:
                     current_camera_rotate = 0
             elif event.key in [K_z]:
                 terrain_arrays = create_grid()
+        elif event.type == MOUSEBUTTONUP:
+            if event.button == 1 and hovered_block:
+                if hovered_block not in selected_tiles:
+                    selected_tiles.append(hovered_block)
+                else:
+                    selected_tiles.remove(hovered_block)
+            elif event.button == 3:
+                selected_tiles = []
+
 pygame.quit()
