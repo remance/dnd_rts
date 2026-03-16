@@ -26,10 +26,11 @@ DEFAULT_ZOOM_LEVEL = int(len(ZOOM_TILE_SIZE_SCALED) / 2)
 current_zoom_level = DEFAULT_ZOOM_LEVEL
 current_zoom_scale = ZOOM_SCALE_VALUE[current_zoom_level]
 
-MAX_TILE_HEIGHT_VISIBILITY = ZOOM_TILE_SIZE_SCALED[current_zoom_level][1] * 3
-GRID_SIZE = 3
-max_map_width_scaled = [value[0] * GRID_SIZE for value in ZOOM_TILE_SIZE_SCALED]
-max_map_height_scaled = [value[1] * GRID_SIZE for value in ZOOM_TILE_SIZE_SCALED]
+MAX_TILE_HEIGHT_VISIBILITY = {True: ZOOM_TILE_SIZE_SCALED[current_zoom_level][1] * 2,
+                              False: ZOOM_TILE_SIZE_SCALED[current_zoom_level][1] * 3}
+GRID_SIZE = 4
+max_map_width_scaled = [WINDOW_WIDTH / (value[0] * GRID_SIZE) for value in ZOOM_TILE_SIZE_SCALED]
+max_map_height_scaled = [WINDOW_HEIGHT / (value[1] * GRID_SIZE) for value in ZOOM_TILE_SIZE_SCALED]
 
 # Set up asset directories
 ASSET_DIR = 'images'
@@ -111,7 +112,6 @@ camera = Camera()
 
 # Terrain Block Class
 def create_grid():
-    print('test')
     terrain_grid = [[None for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
 
     for x in range(GRID_SIZE):
@@ -181,45 +181,45 @@ def draw_grid():
     # pos = (start_x + ((x - y) * half_tile_size) - half_tile_size,
     #        start_y + ((x + y) * a_fourth_tile_size))
     half_map_width = max_map_width_scaled[current_zoom_level] / 2
-    # min_block_y = ceil((camera.topleft_x + half_map_width))
+    min_block_y = floor((camera.topleft_x + half_map_width) / ZOOM_TILE_SIZE_SCALED[current_zoom_level][0])
     # print(min_block_y)
     # if min_block_y < 0:
     min_block_y = 0
-    # min_block_x = floor((camera.topleft_x - half_map_width))
+    # min_block_x = ceil((camera.topleft_x - half_map_width))
     # print(min_block_x)
     # if min_block_x < 0:
     min_block_x = GRID_SIZE
 
-    # max_block_y = ceil((camera.topleft_y + half_camera_height) * MAX_TILE_VISIBILITY)
+    max_block_y = floor((camera.topleft_x + half_map_width) / ZOOM_TILE_SIZE_SCALED[current_zoom_level][0])
     # if max_block_y > GRID_SIZE:
     max_block_y = 0
-    max_block_x = floor((camera.topleft_y - max_map_height_scaled[current_zoom_level] / 2) / MAX_TILE_HEIGHT_VISIBILITY)
+    max_block_x = ceil((camera.topleft_y - max_map_height_scaled[current_zoom_level] / 2) / MAX_TILE_HEIGHT_VISIBILITY[mini_height_mode])
     # if max_block_x > GRID_SIZE:
     max_block_x = GRID_SIZE
 
     # print(camera.x, camera.y, min_block_x, min_block_y, max_block_x, max_block_y)
     min_to_check = range(min_block_y, min_block_x)
     max_to_check = range(max_block_y, max_block_x)
-    # print(min_to_check, max_to_check)
+    print(min_to_check, max_to_check)
 
     # use x,y coordinate of 45 degree grid cell system here
     for grid_y in max_to_check:
         for grid_x in min_to_check:
-
+            print(grid_y, grid_x)
             pos = terrain_arrays[current_camera_rotate][grid_x][grid_y]["topleft"][current_zoom_level]
             pos = Vector2(pos[0] - camera.topleft_x, pos[1] - camera.topleft_y)
 
             for height in range(terrain_arrays[current_camera_rotate][grid_x][grid_y]["height"]):
                 pos_y_with_height = pos[1] - (
                         ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[mini_height_mode][current_zoom_level] * height)
+                # print(pos)
                 window.blit(images[current_zoom_level][terrain_arrays[current_camera_rotate][grid_x][grid_y]["terrain"]],
                             (pos[0], pos_y_with_height))
 
-            center_pos = terrain_arrays[current_camera_rotate][grid_x][grid_y]["center"][current_zoom_level]
-            center_pos = Vector2(center_pos[0] - camera.topleft_x, center_pos[1] - camera.topleft_y - (
-                    ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[mini_height_mode][current_zoom_level] * terrain_arrays[current_camera_rotate][grid_x][grid_y]["height"]))
-
-            pygame.draw.circle(window, (220,220,220), center_pos, 10, 5)
+            # center_pos = terrain_arrays[current_camera_rotate][grid_x][grid_y]["center"][current_zoom_level]
+            # center_pos = Vector2(center_pos[0] - camera.topleft_x, center_pos[1] - camera.topleft_y - ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[False][current_zoom_level] - (
+            #         ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[mini_height_mode][current_zoom_level] * (terrain_arrays[current_camera_rotate][grid_x][grid_y]["height"] - 1)))
+            # pygame.draw.circle(window, (220,220,220), center_pos, 10, 5)
             # pygame.draw.circle(window, (220,50,50), pos, 10, 5)
 
     for grid_y in reversed(max_to_check):
@@ -227,8 +227,8 @@ def draw_grid():
             # Check if the mouse is hovering over block
             terrain_height = terrain_arrays[current_camera_rotate][grid_x][grid_y]["height"]
             center_pos = terrain_arrays[current_camera_rotate][grid_x][grid_y]["center"][current_zoom_level]
-            center_pos = Vector2(center_pos[0] - camera.topleft_x, center_pos[1] - camera.topleft_y - (
-                    ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[mini_height_mode][current_zoom_level] * terrain_height))
+            center_pos = Vector2(center_pos[0] - camera.topleft_x, center_pos[1] - camera.topleft_y - ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[False][current_zoom_level] - (
+                    ZOOM_TILE_HEIGHT_WITH_HEIGHT_SCALED[mini_height_mode][current_zoom_level] * (terrain_arrays[current_camera_rotate][grid_x][grid_y]["height"] - 1)))
             x = mouse_pos[0]
             y = mouse_pos[1]
             x_diff = abs(center_pos[0] - x)
@@ -251,7 +251,7 @@ def draw_grid():
                     # cursor within body of high height tile, very likely blocked cursor view from above but lower tile
                     # break the loop since cursor should not consider hidden tile
                     hovered_block = (grid_x, grid_y)
-                    print(hovered_block, mouse_pos[1], center_pos[1])
+                    # print(hovered_block, mouse_pos[1], center_pos[1])
                     break
         if hovered_block:
             break
@@ -299,16 +299,16 @@ while running:
                 current_zoom_scale = ZOOM_SCALE_VALUE[current_zoom_level]
                 camera.camera_update()
             elif event.key in [K_UP, K_w]:
-                camera.base_y -= 20
+                camera.base_y -= 1500
                 camera.camera_update()
             elif event.key in [K_DOWN, K_s]:
-                camera.base_y += 20
+                camera.base_y += 1500
                 camera.camera_update()
             elif event.key in [K_LEFT, K_a]:
-                camera.base_x -= 20
+                camera.base_x -= 1500
                 camera.camera_update()
             elif event.key in [K_RIGHT, K_d]:
-                camera.base_x += 20
+                camera.base_x += 1500
                 camera.camera_update()
             elif event.key in [K_v]:
                 if mini_height_mode:
